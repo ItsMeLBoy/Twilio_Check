@@ -1,105 +1,154 @@
 # !/bin/bash
-# Created by 	: ./LazyBoy - JavaGhost Team
-# Contact 		: https://fb.me/n00b.me - httpsL//t.me/noolep
+# JAVAGHOST TWILIO CHECKER - CREATED BY : ./LAZYBOY - JAVAGHOST TEAM
 
-# color(bold)
-red='\e[1;31m'
-green='\e[1;32m'
-yellow='\e[1;33m'
-blue='\e[1;34m'
-magenta='\e[1;35m'
-cyan='\e[1;36m'
-white='\e[1;37m'
+# COLOR ( BOLD )
+RED="\e[1;31m"
+GREEN="\e[1;32m"
+YELLOW="\e[1;33m"
+BLUE="\e[1;34m"
+MAGENTA="\e[1;35m"
+CYAN="\e[1;36m"
+WHITE="\e[1;37m"
 
-# create file
-array_file=("twilio_cant_get_num" "twilio_can_send" "twilio_cant_send" "twilio_trial")
-for file in ${array_file[@]}; do
-	touch "${file}-$(date +"%Y-%m-%d").txt" auth_twilio.tmp
-done
+# BASE URL TWILIO API
+BASE_URL="https://api.twilio.com/2010-04-01"
 
-# to number [ You can change it if u want - ONLY US NUMBER ]
-to_number="+19379492383"
+# BODY MESSAGE ( U CAN CHANGE BY UR FUCKING SELF )
+BODY_MSG="JAVAGHOST TWILIO CHECKER - WORK : $(echo "${TWILIO_AUTH}" | tr "a1i2u3e4o" "*")"
 
-# banner
-echo '''
+# CREATE DIR
+if [[ ! -d Results ]]; then
+	mkdir Results
+	# CREATE OUTPUT FILES
+	OUTPUT_FILES=("TWILIO_CANT_GET_NUM" "TWILIO_CAN_SEND" "TWILIO_CANT_SEND" "TWILIO_TRIAL" "TWILIO_DEAD_AUTH" "TWILIO_TEST_ACC" "UNKNOWN_ERROR")
+	for LST_OUTPUT in ${OUTPUT_FILES[@]}; do
+		touch Results/${LST_OUTPUT}-$(date +"%Y-%m-%d").txt TWILIO_AUTH.tmp
+	done
+fi
+
+# BANNER
+echo -e '''
+				\e[1;37m
 		     ┌┬┐┬ ┬┬┬  ┬┌─┐   ┌─┐
 		      │ │││││  ││ │───│  
 		      ┴ └┴┘┴┴─┘┴└─┘   └─┘
-		 - JavaGhost Twilio Checker -
+		 - JAVAGHOST TWILIO CHECKER -
 '''
 
-# asking
-read -p $'\e[1;37m[ \e[1;32m? \e[1;37m] Type [ \e[1;32m1 \e[1;37m] For Single Check or Type [ \e[1;32m2 \e[1;37m] \e[1;37mFor Mass Check \e[1;34m: \e[1;32m' ask_opt
+# ASK OPTION
+read -p "$(echo -e "${WHITE}[ ${GREEN}? ${WHITE}] TYPE [ ${GREEN}1 ${WHITE}] FOR SINGLE CHECK OR TYPE [ ${GREEN}2 ${WHITE}] FOR MASS CHECK : ${GREEN}")" ASK_OPT
 
-# option
-if [[ $ask_opt == "1" ]]; then
-	echo ""
-	read -p $'\e[1;37m[ \e[1;32m? \e[1;37m] Input AUTH SID   \e[1;34m: \e[1;32m' ask_auth
-	read -p $'\e[1;37m[ \e[1;32m? \e[1;37m] Input AUTH TOKEN \e[1;34m: \e[1;32m' ask_token
-	echo "$ask_auth:$ask_token" >> auth_twilio.tmp
-elif [[ $ask_opt == "2" ]]; then
-	echo ""
-	echo -e "${white}[ ${red}INFO ${white}] ${blue}- ${white}Just put list with delimiter like this ${blue}: ${green}AUTH_SID:AUTH_TOKEN${white}"
-	read -p $'\e[1;37m[ \e[1;32m? \e[1;37m] Input your list \e[1;34m: \e[1;32m' ask_lst
-	if [[ ! -e $ask_lst ]]; then
-		echo -e "${white}[ ${red}ERROR ${white}] ${blue}- ${red}File not found in your directory${white}"
+# CHECK OPTIONS
+if [[ $ASK_OPT == "1" ]]; then
+	# ASK TWILIO AUTH
+	read -p "$(echo -e "\n${WHITE}[ ${GREEN}? ${WHITE}] INPUT TWILIO SID   : ${GREEN}")" ASK_SID
+	read -p "$(echo -e "${WHITE}[ ${GREEN}? ${WHITE}] INPUT TWILIO TOKEN : ${GREEN}")" ASK_TOKEN
+	if [[ -z $ASK_SID ]] || [[ -z $ASK_TOKEN ]] ; then
+		echo -e "${WHITE}[ ${RED}ERROR ${WHITE}] - ${RED}PLEASE INPUT VALID TWILIO AUTH${WHITE}"
 		exit
-		rm auth_twilio.tmp
 	else
-		cat $ask_lst | sort -u > auth_twilio.tmp
-		echo ""
+		echo "${ASK_SID}:${ASK_TOKEN}" > TWILIO_AUTH.tmp
+	fi
+elif [[ $ASK_OPT == "2" ]]; then
+	# ASK FILES
+	read -p "$(echo -e "${WHITE}[ ${GREEN}? ${WHITE}] INPUT YOUR LIST TWILIO AUTH : ${GREEN}")" ASK_FILE
+	if [[ ! -e $ASK_FILE ]]; then
+		echo -e "${WHITE}[ ${RED}ERROR ${WHITE}] - ${RED}LIST NOT FOUND IN YOUR DIRECTORY${WHITE}"
+		exit
+	else
+		if [[ $(file $ASK_FILE) =~ "line terminators" ]]; then
+			# CONVERT DOS FORMAT TO UNIX FORMAT
+			sed -i 's/\x0D$//' $ASK_FILE
+			cat $ASK_FILE | sort -u > TWILIO_AUTH.tmp
+		else
+			cat $ASK_FILE | sort -u > TWILIO_AUTH.tmp
+		fi
 	fi
 else
-	echo -e "${white}[ ${red}! ${white}] ${red}you select an option that does not exist!${white}"
+	echo -e "${WHITE}[ ${RED}ERROR ${WHITE}] - ${RED}YOU SELECTED WRONG OPTION${WHITE}"
 	exit
-	rm auth_twilio.tmp
 fi
 
-# twilio api
-function twilio_api(){ curl -s -X "${1}" --url "https://api.twilio.com/2010-04-01/${2}/" -u "${twilio_auth}" ; }
+# FUNC FOR MAKING TWILIO REQUEST
+function TWILIO_REQ(){
+	curl -sXGET "${BASE_URL}/${1}" -u "${TWILIO_AUTH}"
+}
 
-# start checking twilio auth
-function check_twilio(){
-	twilio_type=$(twilio_api POST Accounts.json | grep -Po '"type": "\K[^"]+')
-	twilio_balance=$(twilio_api GET "Accounts/$(echo "${twilio_auth}" | cut -d ":" -f1)/Balance.json" | grep -Po '"balance": "\K[^"]+')
-	twilio_phone_number=$(twilio_api GET "Accounts/$(echo "${twilio_auth}" | cut -d ":" -f1)/IncomingPhoneNumbers.json" | grep -Po '"phone_number": "\K[^"]+' | head -n1)
+# MAIN SCRIPT
+function TWILIO_CHECKER(){
+	# GET SID VALUE FROM TWILIO AUTH
+	local TWILIO_SID=$(echo "${TWILIO_AUTH}" | cut -d ":" -f1)
+	local CHECK_AUTH=$(TWILIO_REQ "Accounts/${TWILIO_SID}.json")
 
-	if [[ $twilio_type == "Full" ]]; then
-		if [[ -z $twilio_phone_number ]]; then
-			echo -e "\n${white}[ ${red}- ${white}] AUTH\t${blue}: ${white}${twilio_auth}\n${white}[ ${green}? ${white}] ACC TYPE  ${blue}: ${green}FULL\n${white}[ ${green}? ${white}] BALANCE   ${blue}: ${green}${twilio_balance}\n${white}[ ${red}- ${white}] ${red}CANT GET NUMBER${white}"
-			echo "${twilio_auth}" >> twilio_cant_get_num.txt
-		else
-			# for check send
-			check_send=$(curl -s -X POST https://api.twilio.com/2010-04-01/Accounts/$(echo $twilio_auth | cut -d ":" -f1)/Messages.json \
-								--data-urlencode "Body=JavaGhost - Mass Twilio Checker" \
-								--data-urlencode "From=$twilio_phone_number" \
-								--data-urlencode "To=${to_number}" \
-								-u "${twilio_auth}" | grep -o "queued")
+	# CHECKING TWILIO AUTH
+	if [[ $CHECK_AUTH =~ "friendly_name" ]]; then
+	
+		# GET INFROMATION ABOUT THE SID + TOKEN
+		local GET_TYPE_ACC=$(TWILIO_REQ "Accounts/${TWILIO_SID}.json" | grep -Po '"type": "\K[^"]+')
+		local GET_FROM_NUM=$(TWILIO_REQ "Accounts/${TWILIO_SID}/IncomingPhoneNumbers.json" | grep -Po '"incoming_phone_numbers": "\K[^"]+')
+		local GET_CREDIT=$(TWILIO_REQ "Accounts/${TWILIO_SID}/Balance.json" | grep -Po '"(currency|balance)": "\K[^"]+' | sed -n '1{h;d};2{p;x;};p' | sed '/./{:a;N;s/\n\(.\)/ \1/;ta}')
+		local GET_ERROR_MSG=$(echo $CHECK_AUTH | grep -Po '"more_info": "\K[^"]+')
 
-			if [[ $check_send == "queued" ]]; then
-				echo -e "\n${white}[ ${green}+ ${white}] AUTH\t${blue}: ${green}${twilio_auth}\n${white}[ ${green}? ${white}] ACC TYPE  ${blue}: ${green}FULL\n${white}[ ${green}? ${white}] BALANCE   ${blue}: ${green}${twilio_balance}\n${white}[ ${green}? ${white}] PHONE\t${blue}: ${green}${twilio_phone_number}\n${white}[ ${green}? ${white}] ${yellow}CAN SEND TO US NUMBER${white}" | tee -a twilio_can_send-$(date +"%Y-%m-%d").txt
+		if [[ $GET_TYPE_ACC == "Full" ]]; then
+			if [[ -z $GET_FROM_NUM ]]; then
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED FOR GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIPPED FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:FAILED GET FROM NUM [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_GET_NUM-$(date +"%Y-%m-%d").txt
 			else
-				echo -e "\n${white}[ ${red}- ${white}] AUTH\t${blue}: ${green}${twilio_auth}\n${white}[ ${green}? ${white}] ACC TYPE  ${blue}: ${green}FULL\n${white}[ ${green}? ${white}] BALANCE   ${blue}: ${green}${twilio_balance}\n${white}[ ${green}? ${white}] PHONE\t${blue}: ${green}${twilio_phone_number}\n${white}[ ${green}? ${white}] ${red}CANT SEND TO US NUMBER${white}" | tee -a twilio_cant_send-$(date +"%Y-%m-%d").txt
+				# SENDING MSG
+				local CHECK_SEND=$(curl -sXPOST "${BASE_URL}/Accounts/${TWILIO_SID}/Messages.json" \
+										--data-urlencode "Body=${BODY_MSG}" --data-urlencode "From=${GET_FROM_NUM}" --data-urlencode "To=${TO_NUMBER}" \
+										-u "${TWILIO_AUTH}" | grep -Po '"status": "\K[^"]+')
+
+				# CHECKING RESPONSE SENDING MSG
+				if [[ $CHECK_SEND == "sent" || $CHECK_SEND == "queued" || $CHECK_SEND == "delivered" ]]; then
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${GREEN}SUCCESS SEND TO NUM : ${GREEN}${TO_NUMBER}${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:WORK SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt
+				elif [[ $CHECK_SEND == "failed" || $CHECK_SEND == "undelivered" ]]; then
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}FAILED SEND TO NUM : ${RED}${TO_NUMBER}${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:FAILED SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_SEND-$(date +"%Y-%m-%d").txt
+				else
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}CHEK SEND UNKNOWN ERROR${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:FAILED SEND - UNKNOWN ERROR TEST SEND [ ACC TYPE : FULL ]" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
+				fi			
 			fi
+		elif [[ $GET_TYPE_ACC == "Trial" ]]; then
+			if [[ -z $GET_FROM_NUM ]]; then
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_CREDIT}:FAILED GET FROM NUM [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt				
+			else
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_CREDIT}:${GET_FROM_NUM} [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt
+			fi
+		else
+			echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
+			echo "TWILIO AUTH : ${TWILIO_AUTH}:UNKNOWN ERROR CHECKING TYPE ACC" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
 		fi
-	elif [[ $twilio_type == "Trial" ]]; then
-		echo -e "${white}[ ${red}- ${white}] AUTH ${blue}: ${red}${twilio_auth} ${blue}- ${white}ACC TYPE ${blue}: ${red}TRIAL ${blue}- ${red}SKIPPED FOR CHECKING${white}"
-		echo "${twilio_auth}" >> twilio_trial.txt
+
+	elif [[ $CHECK_AUTH =~ "Test Account" ]]; then
+		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}TEST ACCOUNT - SKIPPED FOR GET ANOTHER INFORMATION${WHITE}"
+		echo "TWILIO AUTH : ${TWILIO_AUTH}:TEST ACCOUNT - MORE INFO ABOUT THIS : ${GET_ERROR_MSG}" >> Results/TWILIO_TEST_ACC-$(date +"%Y-%m-%d").txt
+	elif [[ $CHECK_AUTH =~ "Authenticate" ]]; then
+		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}BAD AUTH${WHITE}"
+		echo "TWILIO AUTH : ${TWILIO_AUTH}:DEAD SID AND TOKEN" >> Results/TWILIO_DEAD_AUTH-$(date +"%Y-%m-%d").txt
 	else
-		echo -e "${white}[ ${red}! ${white}] AUTH ${blue}: ${red}${twilio_auth} ${blue}- ${red}AUTH INVALID${white}"
+		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
+		echo "TWILIO AUTH : ${TWILIO_AUTH}:UNKNOWN ERROR CHECKING ACC" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
 	fi
 }
 
-# multithreading
-limit="10"
-for twilio_auth in $(cat auth_twilio.tmp); do
-	check_twilio "$twilio_auth" &
-	while (( $(jobs | wc -l) >= $limit )); do
+# MULTI THREAD
+for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
+	TWILIO_CHECKER "${TWILIO_AUTH}" &
+	while (( $(jobs | wc -l) >= 5 )); do
 		sleep 0.1s
 		jobs > /dev/null
 	done
 done
 wait
 
-echo -e "\n${white}[ ${green}+ ${white}] GOOD TWILIO SAVED IN ${blue}: ${green}$(pwd)/twilio_can_send-$(date +"%Y-%m-%d").txt${white}"
-rm auth_twilio.tmp
+# CHECK TMP FILES
+if [[ -e TWILIO_AUTH.TMP ]]; then
+	rm TWILIO_AUTH.tmp
+fi
+
+echo -e "\n${WHITE}[ ${GREEN}+ ${WHITE}] ${GREEN}GOOD TWILIO SAVED IN : ${GREEN}$(pwd)/Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt${WHITE}"
