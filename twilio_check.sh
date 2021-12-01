@@ -84,7 +84,7 @@ function TWILIO_CHECKER(){
 	if [[ $CHECK_AUTH =~ "friendly_name" ]]; then
 	
 		# GET INFROMATION ABOUT THE SID + TOKEN
-		local GET_TYPE_ACC=$(TWILIO_REQ "Accounts/${TWILIO_SID}.json" | grep -Po '"type": "\K[^"]+')
+		local GET_TYPE_ACC=$(TWILIO_REQ "Accounts.json" | grep -Po '"type": "\K[^"]+')
 		local GET_FROM_NUM=$(TWILIO_REQ "Accounts/${TWILIO_SID}/IncomingPhoneNumbers.json" | grep -Po '"incoming_phone_numbers": "\K[^"]+')
 		local GET_CREDIT=$(TWILIO_REQ "Accounts/${TWILIO_SID}/Balance.json" | grep -Po '"(currency|balance)": "\K[^"]+' | sed -n '1{h;d};2{p;x;};p' | sed '/./{:a;N;s/\n\(.\)/ \1/;ta}')
 		local GET_ERROR_MSG=$(echo $CHECK_AUTH | grep -Po '"more_info": "\K[^"]+')
