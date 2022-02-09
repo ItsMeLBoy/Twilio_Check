@@ -136,7 +136,7 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 				done
 			fi
 		elif [[ $GET_TYPE_ACC =~ "Trial" ]]; then
-			echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n[ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
+			echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
 			echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt
 		else
 			echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
