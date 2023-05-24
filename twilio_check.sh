@@ -50,6 +50,9 @@ if [[ $ASK_OPT == "1" ]]; then
 		echo "${ASK_SID}:${ASK_TOKEN}" > TWILIO_AUTH.tmp
 	fi
 elif [[ $ASK_OPT == "2" ]]; then
+	# INFO
+	echo -e "${WHITE}[ ${GREEN}! ${WHITE}] PLEASE MAKE SURE YOUR LIST USES THE DELIMITER '${GREEN}:${WHITE}' [ E.G : ${GREEN}SID:TOKEN ${WHITE}]"
+	
 	# ASK FILES
 	read -p "$(echo -e "${WHITE}[ ${GREEN}? ${WHITE}] INPUT YOUR LIST TWILIO AUTH : ${GREEN}")" ASK_FILE
 	if [[ ! -e $ASK_FILE ]]; then
