@@ -16,6 +16,9 @@ BASE_URL="https://api.twilio.com/2010-04-01"
 # EDIT NUMBER FOR TEST MSG
 TO_NUMBER="+12546295126"
 
+# MESSAGE TO SEND
+BODY_MSG="JAVAGHOST-MSG${RANDOM}"
+
 # CREATE DIR
 if [[ ! -d Results ]]; then
 	# CREATE OUTPUT FILES
@@ -107,9 +110,7 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 
 				# TEST SENDING MSG
 				for LIST_FN in $(echo "${GET_FROM_NUM}" | tr " " "\n"); do
-					# BODY MESSAGE ( U CAN CHANGE BY UR FUCKING SELF )
-					BODY_MSG="JAVAGHOST TWILIO CHECKER - WORK : ${TWILIO_SID}"
-
+				
 					# SENDING MSG
 					CHECK_SEND=$(curl -sXPOST "${BASE_URL}/Accounts/${TWILIO_SID}/Messages.json" \
 											--data-urlencode "Body=${BODY_MSG}" \
