@@ -109,7 +109,7 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 				# GET LIST FN
 				TOTAL_FN=$(echo "${GET_FROM_NUM}" | tr " " "\n" | wc -l)
 				echo -e " ${WHITE}[ ${GREEN}? ${WHITE}] FOUND    ${WHITE}: ${GREEN}${TOTAL_FN} FROM NUMBER"
-				echo -e " ${WHITE}[ ${GREEN}! ${WHITE}] ${YELLOW}TRYING CHECK SEND USING ONE OF THE ${WHITE}: ${GREEN}${TOTAL_FN} FROM NUMBER - UNTIL FOUND WORK FOR SEND"
+				echo -e " ${WHITE}[ ${GREEN}! ${WHITE}] ${YELLOW}TRYING CHECK SEND USING ONE OF THE ${WHITE}: ${GREEN}${TOTAL_FN} FROM NUMBER ${WHIE}- ${RED}UNTIL FOUND WORK FOR SEND${WHITE}"
 
 				# TEST SENDING MSG
 				for LIST_FN in $(echo "${GET_FROM_NUM}" | tr " " "\n"); do
