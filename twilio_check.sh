@@ -17,7 +17,10 @@ BASE_URL="https://api.twilio.com/2010-04-01"
 TO_NUMBER="+12546295126"
 
 # MESSAGE TO SEND
-BODY_MSG="JAVAGHOST-MSG${RANDOM}"
+BODY_MSG="JAVAGHOST-#MSG${RANDOM}"
+
+# DATE
+LOG_DATE=$(date +"%Y-%m-%d")
 
 # CREATE DIR
 if [[ ! -d Results ]]; then
@@ -25,7 +28,7 @@ if [[ ! -d Results ]]; then
 	mkdir Results
 	OUTPUT_FILES=("TWILIO_CANT_GET_NUM" "TWILIO_CAN_SEND" "TWILIO_CANT_SEND" "TWILIO_TRIAL" "TWILIO_DEAD_AUTH" "TWILIO_TEST_ACC" "REGION_NOT_SUPPORT" "INVALID_FROM_NUMBER" "UNKNOWN_ERROR")
 	for LST_OUTPUT in ${OUTPUT_FILES[@]}; do
-		touch Results/${LST_OUTPUT}-$(date +"%Y-%m-%d").txt TWILIO_AUTH.tmp
+		touch "Results/${LST_OUTPUT}-${LOG_DATE}.txt" TWILIO_AUTH.tmp
 	done
 fi
 
@@ -98,7 +101,7 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 		if [[ $GET_TYPE_ACC =~ "Full" ]]; then
 			if [[ -z $GET_FROM_NUM ]]; then
 				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}* ${WHITE}] FROM NUM : ${RED}FAILED FOR GET FROM NUMBER\n${WHITE} [ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIPPED FOR CHECK SEND${WHITE}"
-				echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_BALANCE}:FAILED GET FROM NUM [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_GET_NUM-$(date +"%Y-%m-%d").txt
+				echo "TWILIO AUTH : ${TWILIO_AUTH}-${GET_BALANCE}:FAILED GET FROM NUM [ ACC TYPE : FULL ]" >> "Results/TWILIO_CANT_GET_NUM-${LOG_DATE}.txt"
 			else
 				# SHOW INFORMATION
 				echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}FULL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}"
@@ -107,10 +110,10 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 				TOTAL_FN=$(echo "${GET_FROM_NUM}" | tr " " "\n" | wc -l)
 				echo -e " ${WHITE}[ ${GREEN}? ${WHITE}] FOUND    ${WHITE}: ${GREEN}${TOTAL_FN} FROM NUMBER"
 				echo -e " ${WHITE}[ ${GREEN}! ${WHITE}] ${YELLOW}TRYING CHECK SEND USING ${WHITE}: ${GREEN}${TOTAL_FN} FROM NUMBER"
+				echo -e " ${WHITE}[ ${GREEN}? ${WHITE}] CHECK SEND WILL STOPPED IF FOUND ONE FROM NUMBER WORK FOR SEND"
 
 				# TEST SENDING MSG
 				for LIST_FN in $(echo "${GET_FROM_NUM}" | tr " " "\n"); do
-				
 					# SENDING MSG
 					CHECK_SEND=$(curl -sXPOST "${BASE_URL}/Accounts/${TWILIO_SID}/Messages.json" \
 											--data-urlencode "Body=${BODY_MSG}" \
@@ -121,40 +124,40 @@ for TWILIO_AUTH in $(cat TWILIO_AUTH.tmp); do
 					# CHECKING RESPONSE SENDING MSG
 					if [[ $CHECK_SEND =~ "sent" || $CHECK_SEND =~ "queued" || $CHECK_SEND =~ "delivered" ]]; then
 						echo -e "  ${WHITE}[ ${YELLOW}* ${WHITE}] FROM NUMBER : ${GREEN}${LIST_FN} ${WHITE}- ${GREEN}SUCCESS SEND TO NUM : ${GREEN}${TO_NUMBER}${WHITE}"
-						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : WORK SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt
+						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : WORK SEND TO US NUMBER [ ACC TYPE : FULL ]" >> "Results/TWILIO_CAN_SEND-${LOG_DATE}.txt"
 						break
 					elif [[ $CHECK_SEND =~ "failed" || $CHECK_SEND =~ "undelivered" ]]; then
 						echo -e "  ${WHITE}[ ${YELLOW}* ${WHITE}] FROM NUMBER : ${RED}${LIST_FN} ${WHITE}- ${RED}FAILED SEND TO NUM : ${RED}${TO_NUMBER}${WHITE}"
-						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND TO US NUMBER [ ACC TYPE : FULL ]" >> Results/TWILIO_CANT_SEND-$(date +"%Y-%m-%d").txt
+						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND TO US NUMBER [ ACC TYPE : FULL ]" >> "Results/TWILIO_CANT_SEND-${LOG_DATE}.txt"
 					elif [[ $CHECK_SEND =~ "Permission to send an SMS has not been enabled" ]]; then
 						echo -e "  ${WHITE}[ ${YELLOW}* ${WHITE}] FROM NUMBER : ${RED}${LIST_FN} ${WHITE}- ${RED}CANT SEND TO REGION WITH CODE ${WHITE}: ${RED}$(echo "${TO_NUMBER}" | head -c2)${WHITE}"
-						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - REGION NOT SUPPORT [ ACC TYPE : FULL ]" >> Results/REGION_NOT_SUPPORT-$(date +"%Y-%m-%d").txt
+						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - REGION NOT SUPPORT [ ACC TYPE : FULL ]" >> "Results/REGION_NOT_SUPPORT-${LOG_DATE}.txt"
 					elif [[ $CHECK_SEND =~ "The From phone number" ]]; then
 						echo -e "  ${WHITE}[ ${YELLOW}* ${WHITE}] FROM NUMBER : ${RED}${LIST_FN} ${WHITE}- ${RED}FAILED SEND ${WHITE}[ ${RED}INVALID FROM NUMBER ${WHITE}]"
-						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - INVALID FN [ ACC TYPE : FULL ]" >> Results/INVALID_FROM_NUMBER-$(date +"%Y-%m-%d").txt
+						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - INVALID FN [ ACC TYPE : FULL ]" >> "Results/INVALID_FROM_NUMBER-${LOG_DATE}.txt"
 					else
 						echo -e "  ${WHITE}[ ${YELLOW}* ${WHITE}] FROM NUMBER : ${RED}${LIST_FN} ${WHITE}- ${RED}CHECK SEND UNKNOWN ERROR${WHITE}"
-						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - UNKNOWN ERROR TEST SEND [ ACC TYPE : FULL ]" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
+						echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - ${LIST_FN} : FAILED SEND - UNKNOWN ERROR TEST SEND [ ACC TYPE : FULL ]" >> "Results/UNKNOWN_ERROR-${LOG_DATE}.txt"
 					fi
 					# SENDING MSG
 				done
 			fi
 		elif [[ $GET_TYPE_ACC =~ "Trial" ]]; then
 			echo -e "\n ${WHITE}[ ${GREEN}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID}\n ${WHITE}[ ${GREEN}? ${WHITE}] ACC TYPE : ${GREEN}TRIAL\n ${WHITE}[ ${GREEN}$ ${WHITE}] BALANCE  : ${GREEN}${GET_BALANCE}\n ${WHITE}[ ${GREEN}? ${WHITE}] STATUS   : ${RED}SKIP FOR CHECK SEND${WHITE}"
-			echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - [ ACC TYPE : TRIAL ]" >> Results/TWILIO_TRIAL-$(date +"%Y-%m-%d").txt
+			echo "TWILIO AUTH : ${TWILIO_AUTH} - ${GET_BALANCE} - [ ACC TYPE : TRIAL ]" >> "Results/TWILIO_TRIAL-${LOG_DATE}.txt"
 		else
 			echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
-			echo "TWILIO AUTH : ${TWILIO_AUTH} - UNKNOWN ERROR CHECKING TYPE ACC" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
+			echo "TWILIO AUTH : ${TWILIO_AUTH} - UNKNOWN ERROR CHECKING TYPE ACC" >> "Results/UNKNOWN_ERROR-${LOG_DATE}.txt"
 		fi
 	elif [[ $CHECK_AUTH =~ "Test Account" ]]; then
 		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}TEST ACCOUNT - SKIPPED FOR GET ANOTHER INFORMATION${WHITE}"
-		echo "TWILIO AUTH : ${TWILIO_AUTH} - TEST ACCOUNT - MORE INFO ABOUT THIS : ${GET_ERROR_MSG}" >> Results/TWILIO_TEST_ACC-$(date +"%Y-%m-%d").txt
+		echo "TWILIO AUTH : ${TWILIO_AUTH} - TEST ACCOUNT - MORE INFO ABOUT THIS : ${GET_ERROR_MSG}" >> "Results/TWILIO_TEST_ACC-${LOG_DATE}.txt"
 	elif [[ $CHECK_AUTH =~ "Authenticate" ]]; then
 		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}BAD AUTH${WHITE}"
-		echo "TWILIO AUTH : ${TWILIO_AUTH} - DEAD SID AND TOKEN" >> Results/TWILIO_DEAD_AUTH-$(date +"%Y-%m-%d").txt
+		echo "TWILIO AUTH : ${TWILIO_AUTH} - DEAD SID AND TOKEN" >> "Results/TWILIO_DEAD_AUTH-${LOG_DATE}.txt"
 	else
 		echo -e "\n ${WHITE}[ ${RED}AUTH ${WHITE}] - ${GREEN}${TWILIO_SID} : ${RED}UNKNOWN ERROR${WHITE}"
-		echo "TWILIO AUTH : ${TWILIO_AUTH} - UNKNOWN ERROR CHECKING ACC" >> Results/UNKNOWN_ERROR-$(date +"%Y-%m-%d").txt
+		echo "TWILIO AUTH : ${TWILIO_AUTH} - UNKNOWN ERROR CHECKING ACC" >> "Results/UNKNOWN_ERROR-${LOG_DATE}.txt"
 	fi
 done
 
@@ -163,5 +166,5 @@ if [[ -e TWILIO_AUTH.TMP ]]; then
 	rm TWILIO_AUTH.tmp
 fi
 
-echo -e "\n${WHITE}[ ${GREEN}+ ${WHITE}] ${GREEN}GOOD TWILIO SAVED IN : ${GREEN}$(pwd)/Results/TWILIO_CAN_SEND-$(date +"%Y-%m-%d").txt${WHITE}"
+echo -e "\n${WHITE}[ ${GREEN}+ ${WHITE}] ${GREEN}GOOD TWILIO SAVED IN : ${GREEN}$(pwd)/Results/TWILIO_CAN_SEND-${LOG_DATE}.txt${WHITE}"
 # END
